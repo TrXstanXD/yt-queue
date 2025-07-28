@@ -46,16 +46,6 @@
       padding: 20px;
       position: relative;
     }
-      textarea {
-      width: 100%;
-      max-width: 800px;
-      height: 160px;
-      padding: 10px;
-      font-size: 14px;
-      margin-bottom: 10px;
-      border: none;
-      border-radius: 8px;
-    }
     button {
       padding: 10px 20px;
       font-size: 16px;
@@ -87,6 +77,15 @@
       flex-direction: column;
       align-items: center;
     }
+    .link-box {
+  width: 100%;
+  max-width: 800px;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+}
   </style>
 </head>
 <body>
@@ -100,11 +99,14 @@
     <h1>YTQueue</h1>
     <div class="instructions">➡️ skip   ⬅️ back</div>
 
-    <div class="input-section" id="inputSection">
-      <p>Paste YouTube links (one per line):</p>
-      <textarea id="linksInput" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></textarea>
-      <button onclick="startQueue()">Start Queue</button>
-    </div>
+<div class="input-section" id="inputSection">
+  <p>Enter YouTube links one at a time:</p>
+  <div id="linkInputs">
+    <input type="text" class="link-box" placeholder="https://www.youtube.com/watch?v=..." onkeydown="handleKey(event)">
+  </div>
+  <button onclick="addLinkBox()">➕ Add Link</button>
+  <button onclick="startQueue()">▶️ Start Queue</button>
+</div>
 
     <button onclick="toggleEditQueue()" id="editBtn" style="display:none;">✏️ Edit Queue</button>
 
@@ -132,20 +134,21 @@
     }
   }
 
-  async function startQueue() {
-    const rawLinks = document.getElementById("linksInput").value.trim().split("\n");
-    const ids = rawLinks.map(extractVideoID).filter(id => id);
-    videoQueue = ids;
-    currentIndex = 0;
+async function startQueue() {
+  const inputElements = document.querySelectorAll(".link-box");
+  const rawLinks = Array.from(inputElements).map(el => el.value.trim()).filter(link => link !== "");
+  const ids = rawLinks.map(extractVideoID).filter(id => id);
 
-    // Fetch titles
-    videoTitles = await Promise.all(ids.map(id => fetchTitle(id)));
+  videoQueue = ids;
+  currentIndex = 0;
 
-    updateQueueUI();
-    playCurrent();
-    document.getElementById("inputSection").style.display = "none";
-    document.getElementById("editBtn").style.display = "block";
-  }
+  videoTitles = await Promise.all(ids.map(id => fetchTitle(id)));
+
+  updateQueueUI();
+  playCurrent();
+  document.getElementById("inputSection").style.display = "none";
+  document.getElementById("editBtn").style.display = "block";
+}
 
   function updateQueueUI() {
     const queueList = document.getElementById("queueList");
@@ -171,10 +174,29 @@
     }
   }
 
-  function toggleEditQueue() {
-    const section = document.getElementById("inputSection");
-    section.style.display = section.style.display === "none" ? "flex" : "none";
+function toggleEditQueue() {
+  const section = document.getElementById("inputSection");
+  section.style.display = "flex";
+  document.getElementById("editBtn").style.display = "none";
+}
+   function addLinkBox() {
+  const container = document.getElementById("linkInputs");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "https://www.youtube.com/watch?v=...";
+  input.className = "link-box";
+  input.onkeydown = handleKey;
+  container.appendChild(input);
+  input.focus();
+}
+
+function handleKey(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addLinkBox();
   }
+}
+
 
   document.addEventListener("keydown", e => {
     if (e.key === "ArrowRight") {

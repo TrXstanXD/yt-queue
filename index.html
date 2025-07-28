@@ -138,6 +138,7 @@
     let videoTitles = [];
     let currentIndex = 0;
     let ytPlayer;
+    let playerReady = false;
 
     function extractVideoID(url) {
       const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -174,11 +175,21 @@
       videoTitles = await Promise.all(ids.map(id => fetchTitle(id)));
 
       updateQueueUI();
-      playCurrent();
       document.getElementById("inputSection").style.display = "none";
       document.getElementById("editBtn").style.display = "block";
       document.getElementById("videoControls").style.display = "block";
-      document.getElementById("playerWrapper").classList.add("hidden");
+      document.getElementById("playerWrapper").classList.remove("hidden");
+
+      if (playerReady) {
+        playCurrent();
+      } else {
+        const interval = setInterval(() => {
+          if (playerReady) {
+            clearInterval(interval);
+            playCurrent();
+          }
+        }, 100);
+      }
     }
 
     function updateQueueUI() {
@@ -211,6 +222,7 @@
         height: "450",
         width: "800",
         events: {
+          'onReady': () => { playerReady = true; },
           'onStateChange': onPlayerStateChange
         }
       });
@@ -230,7 +242,6 @@
         const videoId = videoQueue[currentIndex];
         ytPlayer.loadVideoById(videoId);
         updateQueueUI();
-        document.getElementById("playerWrapper").classList.remove("hidden");
       }
     }
 

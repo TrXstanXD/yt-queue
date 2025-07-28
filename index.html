@@ -56,13 +56,6 @@
       cursor: pointer;
       margin: 5px;
     }
-    iframe {
-      width: 100%;
-      max-width: 800px;
-      height: 450px;
-      border: none;
-      border-radius: 10px;
-    }
     .instructions {
       position: absolute;
       top: 20px;
@@ -77,204 +70,212 @@
       flex-direction: column;
       align-items: center;
     }
-.link-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 800px;
-}
-
-.link-row {
-  display: flex;
-  width: 100%;
-  margin-bottom: 8px;
-}
-
-.link-box {
-  flex: 1;
-  padding: 10px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: none;
-}
-
-.remove-btn {
-  background: #444;
-  color: #fff;
-  border: none;
-  padding: 0 10px;
-  margin-left: 6px;
-  font-size: 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
+    .link-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 800px;
+    }
+    .link-row {
+      display: flex;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    .link-box {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: none;
+    }
+    .remove-btn {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 0 10px;
+      margin-left: 6px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #videoControls {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-
   <div class="sidebar">
     <h2>🎞️ Queue</h2>
     <div id="queueList"></div>
   </div>
-
   <div class="main">
     <h1>YTQueue</h1>
     <div class="instructions">➡️ skip   ⬅️ back</div>
-
-<div class="input-section" id="inputSection">
-  <p>Enter YouTube links one at a time:</p>
-  <div id="linkInputs" class="link-container">
-    <input type="text" class="link-box" placeholder="https://www.youtube.com/watch?v=..." onkeydown="handleKey(event)">
-  </div>
-  <button onclick="addLinkBox()">➕ Add Link</button>
-  <button onclick="startQueue()">▶️ Start Queue</button>
-</div>
-
+    <div class="input-section" id="inputSection">
+      <p>Enter YouTube links one at a time:</p>
+      <div id="linkInputs" class="link-container">
+        <input type="text" class="link-box" placeholder="https://www.youtube.com/watch?v=..." onkeydown="handleKey(event)">
+      </div>
+      <button onclick="addLinkBox()">➕ Add Link</button>
+      <button onclick="startQueue()">▶️ Start Queue</button>
+    </div>
     <button onclick="toggleEditQueue()" id="editBtn" style="display:none;">✏️ Edit Queue</button>
-
-    <iframe id="player" allow="autoplay" allowfullscreen></iframe>
-  </div>
-
- <script>
-  let videoQueue = [];
-  let videoTitles = [];
-  let currentIndex = 0;
-
-  function extractVideoID(url) {
-    const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return match ? match[1] : null;
-  }
-
-async function fetchTitle(videoId) {
-  try {
-    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-    const res = await fetch(oembedUrl);
-    const data = await res.json();
-
-    return {
-      title: data.title,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-      duration: "–:––"
-    };
-  } catch {
-    return {
-      title: "Unknown Title",
-      thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-      duration: "–:––"
-    };
-  }
-}
-
-
-async function startQueue() {
-  const inputElements = document.querySelectorAll(".link-box");
-  const rawLinks = Array.from(inputElements).map(el => el.value.trim()).filter(link => link !== "");
-  const ids = rawLinks.map(extractVideoID).filter(id => id);
-
-  videoQueue = ids;
-  currentIndex = 0;
-
-  videoTitles = await Promise.all(ids.map(id => fetchTitle(id)));
-
-  updateQueueUI();
-  playCurrent();
-  document.getElementById("inputSection").style.display = "none";
-  document.getElementById("editBtn").style.display = "block";
-}
-
-  function updateQueueUI() {
-    const queueList = document.getElementById("queueList");
-    queueList.innerHTML = "";
-    videoQueue.forEach((id, index) => {
-      const div = document.createElement("div");
-      div.className = "queue-item" + (index === currentIndex ? " active" : "");
-const video = videoTitles[index];
-
-div.innerHTML = `
-  <div style="display: flex; gap: 10px;">
-    <img src="${video.thumbnail}" alt="thumb" width="80" height="45" style="border-radius: 4px;">
-    <div style="flex: 1;">
-      <div style="font-size: 13px; font-weight: bold;">${video.title}</div>
-      <div style="font-size: 12px; color: #aaa;">${video.duration}</div>
+    <div id="player"></div>
+    <div id="videoControls" style="display: none;">
+      <button onclick="skipBack()">⬅️</button>
+      <button onclick="skipNext()">➡️</button>
     </div>
   </div>
-`;
-      div.onclick = () => {
-        currentIndex = index;
-        playCurrent();
-      };
-      queueList.appendChild(div);
-    });
-  }
 
-  function playCurrent() {
-    if (videoQueue[currentIndex]) {
-      const player = document.getElementById("player");
-      const videoId = videoQueue[currentIndex];
-      player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    let videoQueue = [];
+    let videoTitles = [];
+    let currentIndex = 0;
+    let ytPlayer;
+
+    function extractVideoID(url) {
+      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      return match ? match[1] : null;
+    }
+
+    async function fetchTitle(videoId) {
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+        const res = await fetch(oembedUrl);
+        const data = await res.json();
+
+        return {
+          title: data.title,
+          thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+          duration: "–:––"
+        };
+      } catch {
+        return {
+          title: "Unknown Title",
+          thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+          duration: "–:––"
+        };
+      }
+    }
+
+    async function startQueue() {
+      const inputElements = document.querySelectorAll(".link-box");
+      const rawLinks = Array.from(inputElements).map(el => el.value.trim()).filter(link => link !== "");
+      const ids = rawLinks.map(extractVideoID).filter(id => id);
+
+      videoQueue = ids;
+      currentIndex = 0;
+      videoTitles = await Promise.all(ids.map(id => fetchTitle(id)));
+
       updateQueueUI();
-    }
-  }
-
-function toggleEditQueue() {
-  const section = document.getElementById("inputSection");
-  section.style.display = "flex";
-  document.getElementById("editBtn").style.display = "none";
-}
-function addLinkBox(value = "") {
-  const container = document.getElementById("linkInputs");
-
-  const row = document.createElement("div");
-  row.className = "link-row";
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "link-box";
-  input.placeholder = "https://www.youtube.com/watch?v=...";
-  input.value = value;
-  input.onkeydown = handleKey;
-
-  const removeBtn = document.createElement("button");
-  removeBtn.textContent = "❌";
-  removeBtn.className = "remove-btn";
-  removeBtn.onclick = () => row.remove();
-
-  row.appendChild(input);
-  row.appendChild(removeBtn);
-  container.appendChild(row);
-  input.focus();
-}
-
-
-function handleKey(e) {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    addLinkBox();
-  }
-}
-function formatDuration(iso) {
-  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  const hours = parseInt(match[1] || 0);
-  const minutes = parseInt(match[2] || 0);
-  const seconds = parseInt(match[3] || 0);
-
-  if (hours) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
-
-
-  document.addEventListener("keydown", e => {
-    if (e.key === "ArrowRight") {
-      currentIndex = Math.min(currentIndex + 1, videoQueue.length - 1);
       playCurrent();
-    } else if (e.key === "ArrowLeft") {
-      currentIndex = Math.max(currentIndex - 1, 0);
-      playCurrent();
+      document.getElementById("inputSection").style.display = "none";
+      document.getElementById("editBtn").style.display = "block";
+      document.getElementById("videoControls").style.display = "block";
     }
-  });
-</script>
+
+    function updateQueueUI() {
+      const queueList = document.getElementById("queueList");
+      queueList.innerHTML = "";
+      videoQueue.forEach((id, index) => {
+        const div = document.createElement("div");
+        div.className = "queue-item" + (index === currentIndex ? " active" : "");
+        const video = videoTitles[index];
+
+        div.innerHTML = `
+          <div style="display: flex; gap: 10px;">
+            <img src="${video.thumbnail}" alt="thumb" width="80" height="45" style="border-radius: 4px;">
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: bold;">${video.title}</div>
+              <div style="font-size: 12px; color: #aaa;">${video.duration}</div>
+            </div>
+          </div>
+        `;
+        div.onclick = () => {
+          currentIndex = index;
+          playCurrent();
+        };
+        queueList.appendChild(div);
+      });
+    }
+
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player("player", {
+        height: "450",
+        width: "800",
+        events: {
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.ENDED) {
+        if (currentIndex < videoQueue.length - 1) {
+          currentIndex++;
+          playCurrent();
+        }
+      }
+    }
+
+    function playCurrent() {
+      if (videoQueue[currentIndex]) {
+        const videoId = videoQueue[currentIndex];
+        ytPlayer.loadVideoById(videoId);
+        updateQueueUI();
+      }
+    }
+
+    function skipNext() {
+      if (currentIndex < videoQueue.length - 1) {
+        currentIndex++;
+        playCurrent();
+      }
+    }
+
+    function skipBack() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        playCurrent();
+      }
+    }
+
+    function toggleEditQueue() {
+      document.getElementById("inputSection").style.display = "flex";
+      document.getElementById("editBtn").style.display = "none";
+      document.getElementById("videoControls").style.display = "none";
+    }
+
+    function addLinkBox(value = "") {
+      const container = document.getElementById("linkInputs");
+      const row = document.createElement("div");
+      row.className = "link-row";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "link-box";
+      input.placeholder = "https://www.youtube.com/watch?v=...";
+      input.value = value;
+      input.onkeydown = handleKey;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "❌";
+      removeBtn.className = "remove-btn";
+      removeBtn.onclick = () => row.remove();
+
+      row.appendChild(input);
+      row.appendChild(removeBtn);
+      container.appendChild(row);
+      input.focus();
+    }
+
+    function handleKey(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addLinkBox();
+      }
+    }
+  </script>
 </body>
 </html>

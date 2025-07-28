@@ -149,33 +149,23 @@
 async function fetchTitle(videoId) {
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=AIzaSyApLkr7FhVmKEQwQY3pxNFqnmsRMHSwB5w`;
-
-    const [oembedRes, apiRes] = await Promise.all([
-      fetch(oembedUrl),
-      fetch(apiUrl)
-    ]);
-
-    const oembedData = await oembedRes.json();
-    const apiData = await apiRes.json();
-
-    const duration = apiData.items[0]
-      ? formatDuration(apiData.items[0].contentDetails.duration)
-      : "–:––";
+    const res = await fetch(oembedUrl);
+    const data = await res.json();
 
     return {
-      title: oembedData.title,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/default.jpg`,
-      duration
+      title: data.title,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+      duration: "–:––"
     };
   } catch {
     return {
       title: "Unknown Title",
-      thumbnail: `https://img.youtube.com/vi/${videoId}/default.jpg`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
       duration: "–:––"
     };
   }
 }
+
 
 async function startQueue() {
   const inputElements = document.querySelectorAll(".link-box");

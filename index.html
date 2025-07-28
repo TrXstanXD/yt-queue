@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>YTQueue</title>
+  <title>Simple Queue</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -42,10 +42,20 @@
       border: none;
       border-radius: 10px;
     }
+    .instructions {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 14px;
+  color: #aaa;
+  opacity: 0.8;
+  pointer-events: none;
+}
   </style>
 </head>
 <body>
-  <h1>🎥 YTQueue</h1>
+  <h1>🎥 Simple Queue</h1>
+  <div class="instructions">➡️ skip  ⬅️ back</div>
   <p>Paste YouTube links (one per line):</p>
   <textarea id="linksInput" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></textarea>
   <button onclick="startQueue()">Start Queue</button>

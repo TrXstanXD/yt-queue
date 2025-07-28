@@ -111,63 +111,80 @@
     <iframe id="player" allow="autoplay" allowfullscreen></iframe>
   </div>
 
-  <script>
-    let videoQueue = [];
-    let currentIndex = 0;
+ <script>
+  let videoQueue = [];
+  let videoTitles = [];
+  let currentIndex = 0;
 
-    function extractVideoID(url) {
-      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      return match ? match[1] : null;
+  function extractVideoID(url) {
+    const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  }
+
+  async function fetchTitle(videoId) {
+    const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.title;
+    } catch {
+      return "Unknown Title";
     }
+  }
 
-    function startQueue() {
-      const rawLinks = document.getElementById("linksInput").value.trim().split("\n");
-      videoQueue = rawLinks.map(extractVideoID).filter(id => id);
-      currentIndex = 0;
-      updateQueueUI();
-      playCurrent();
-      document.getElementById("inputSection").style.display = "none";
-      document.getElementById("editBtn").style.display = "block";
-    }
+  async function startQueue() {
+    const rawLinks = document.getElementById("linksInput").value.trim().split("\n");
+    const ids = rawLinks.map(extractVideoID).filter(id => id);
+    videoQueue = ids;
+    currentIndex = 0;
 
-    function updateQueueUI() {
-      const queueList = document.getElementById("queueList");
-      queueList.innerHTML = "";
-      videoQueue.forEach((id, index) => {
-        const div = document.createElement("div");
-        div.className = "queue-item" + (index === currentIndex ? " active" : "");
-        div.textContent = `Video ${index + 1}`;
-        div.onclick = () => {
-          currentIndex = index;
-          playCurrent();
-        };
-        queueList.appendChild(div);
-      });
-    }
+    // Fetch titles
+    videoTitles = await Promise.all(ids.map(id => fetchTitle(id)));
 
-    function playCurrent() {
-      if (videoQueue[currentIndex]) {
-        const player = document.getElementById("player");
-        const videoId = videoQueue[currentIndex];
-        player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
-        updateQueueUI();
-      }
-    }
+    updateQueueUI();
+    playCurrent();
+    document.getElementById("inputSection").style.display = "none";
+    document.getElementById("editBtn").style.display = "block";
+  }
 
-    function toggleEditQueue() {
-      const section = document.getElementById("inputSection");
-      section.style.display = section.style.display === "none" ? "flex" : "none";
-    }
-
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowRight") {
-        currentIndex = Math.min(currentIndex + 1, videoQueue.length - 1);
+  function updateQueueUI() {
+    const queueList = document.getElementById("queueList");
+    queueList.innerHTML = "";
+    videoQueue.forEach((id, index) => {
+      const div = document.createElement("div");
+      div.className = "queue-item" + (index === currentIndex ? " active" : "");
+      div.textContent = videoTitles[index] || `Video ${index + 1}`;
+      div.onclick = () => {
+        currentIndex = index;
         playCurrent();
-      } else if (e.key === "ArrowLeft") {
-        currentIndex = Math.max(currentIndex - 1, 0);
-        playCurrent();
-      }
+      };
+      queueList.appendChild(div);
     });
-  </script>
+  }
+
+  function playCurrent() {
+    if (videoQueue[currentIndex]) {
+      const player = document.getElementById("player");
+      const videoId = videoQueue[currentIndex];
+      player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
+      updateQueueUI();
+    }
+  }
+
+  function toggleEditQueue() {
+    const section = document.getElementById("inputSection");
+    section.style.display = section.style.display === "none" ? "flex" : "none";
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") {
+      currentIndex = Math.min(currentIndex + 1, videoQueue.length - 1);
+      playCurrent();
+    } else if (e.key === "ArrowLeft") {
+      currentIndex = Math.max(currentIndex - 1, 0);
+      playCurrent();
+    }
+  });
+</script>
 </body>
 </html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YTQueue</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background-color: #111;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      max-width: 600px;
+      height: 100px;
+      padding: 10px;
+      font-size: 14px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      background: #e50914;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    iframe {
+      width: 100%;
+      max-width: 800px;
+      height: 450px;
+      border: none;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎥 YTQueue</h1>
+  <p>Paste YouTube links (one per line):</p>
+  <textarea id="linksInput" placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></textarea>
+  <button onclick="startQueue()">Start Queue</button>
+  <iframe id="player" allow="autoplay" allowfullscreen></iframe>
+
+  <script>
+    let videoQueue = [];
+    let currentIndex = 0;
+
+    function extractVideoID(url) {
+      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      return match ? match[1] : null;
+    }
+
+    function startQueue() {
+      const rawLinks = document.getElementById("linksInput").value.trim().split("\n");
+      videoQueue = rawLinks.map(extractVideoID).filter(id => id);
+      currentIndex = 0;
+      playCurrent();
+    }
+
+    function playCurrent() {
+      if (videoQueue[currentIndex]) {
+        const player = document.getElementById("player");
+        const videoId = videoQueue[currentIndex];
+        player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
+      }
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowRight") {
+        currentIndex = Math.min(currentIndex + 1, videoQueue.length - 1);
+        playCurrent();
+      } else if (e.key === "ArrowLeft") {
+        currentIndex = Math.max(currentIndex - 1, 0);
+        playCurrent();
+      }
+    });
+  </script>
+</body>
+</html>

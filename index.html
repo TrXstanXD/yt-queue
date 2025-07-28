@@ -77,15 +77,38 @@
       flex-direction: column;
       align-items: center;
     }
-    .link-box {
+.link-container {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 800px;
-  padding: 10px;
+}
+
+.link-row {
+  display: flex;
+  width: 100%;
   margin-bottom: 8px;
+}
+
+.link-box {
+  flex: 1;
+  padding: 10px;
   font-size: 14px;
   border-radius: 6px;
   border: none;
 }
+
+.remove-btn {
+  background: #444;
+  color: #fff;
+  border: none;
+  padding: 0 10px;
+  margin-left: 6px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
   </style>
 </head>
 <body>
@@ -101,7 +124,7 @@
 
 <div class="input-section" id="inputSection">
   <p>Enter YouTube links one at a time:</p>
-  <div id="linkInputs">
+  <div id="linkInputs" class="link-container">
     <input type="text" class="link-box" placeholder="https://www.youtube.com/watch?v=..." onkeydown="handleKey(event)">
   </div>
   <button onclick="addLinkBox()">➕ Add Link</button>
@@ -123,16 +146,36 @@
     return match ? match[1] : null;
   }
 
-  async function fetchTitle(videoId) {
-    const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      return data.title;
-    } catch {
-      return "Unknown Title";
-    }
+async function fetchTitle(videoId) {
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=AIzaSyApLkr7FhVmKEQwQY3pxNFqnmsRMHSwB5w`;
+
+    const [oembedRes, apiRes] = await Promise.all([
+      fetch(oembedUrl),
+      fetch(apiUrl)
+    ]);
+
+    const oembedData = await oembedRes.json();
+    const apiData = await apiRes.json();
+
+    const duration = apiData.items[0]
+      ? formatDuration(apiData.items[0].contentDetails.duration)
+      : "–:––";
+
+    return {
+      title: oembedData.title,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/default.jpg`,
+      duration
+    };
+  } catch {
+    return {
+      title: "Unknown Title",
+      thumbnail: `https://img.youtube.com/vi/${videoId}/default.jpg`,
+      duration: "–:––"
+    };
   }
+}
 
 async function startQueue() {
   const inputElements = document.querySelectorAll(".link-box");
@@ -156,7 +199,17 @@ async function startQueue() {
     videoQueue.forEach((id, index) => {
       const div = document.createElement("div");
       div.className = "queue-item" + (index === currentIndex ? " active" : "");
-      div.textContent = videoTitles[index] || `Video ${index + 1}`;
+const video = videoTitles[index];
+
+div.innerHTML = `
+  <div style="display: flex; gap: 10px;">
+    <img src="${video.thumbnail}" alt="thumb" width="80" height="45" style="border-radius: 4px;">
+    <div style="flex: 1;">
+      <div style="font-size: 13px; font-weight: bold;">${video.title}</div>
+      <div style="font-size: 12px; color: #aaa;">${video.duration}</div>
+    </div>
+  </div>
+`;
       div.onclick = () => {
         currentIndex = index;
         playCurrent();
@@ -179,22 +232,47 @@ function toggleEditQueue() {
   section.style.display = "flex";
   document.getElementById("editBtn").style.display = "none";
 }
-   function addLinkBox() {
+function addLinkBox(value = "") {
   const container = document.getElementById("linkInputs");
+
+  const row = document.createElement("div");
+  row.className = "link-row";
+
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = "https://www.youtube.com/watch?v=...";
   input.className = "link-box";
+  input.placeholder = "https://www.youtube.com/watch?v=...";
+  input.value = value;
   input.onkeydown = handleKey;
-  container.appendChild(input);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.textContent = "❌";
+  removeBtn.className = "remove-btn";
+  removeBtn.onclick = () => row.remove();
+
+  row.appendChild(input);
+  row.appendChild(removeBtn);
+  container.appendChild(row);
   input.focus();
 }
+
 
 function handleKey(e) {
   if (e.key === "Enter") {
     e.preventDefault();
     addLinkBox();
   }
+}
+function formatDuration(iso) {
+  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  const hours = parseInt(match[1] || 0);
+  const minutes = parseInt(match[2] || 0);
+  const seconds = parseInt(match[3] || 0);
+
+  if (hours) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
 
